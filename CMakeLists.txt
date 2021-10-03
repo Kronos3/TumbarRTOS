@@ -11,6 +11,8 @@ set(CMAKE_C_STANDARD 99)
 include(toolchain/llvm.cmake)  # Change this to gcc if you want
 include(cmake/build.cmake)
 
+include(cmake/musl.cmake)
+
 #############################
 # Main kernel sources
 #############################
