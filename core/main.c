@@ -17,7 +17,16 @@
 
 #include <schedule.h>
 
+static char temp_stack[1024*512];
+
+static void thread_main(void)
+{
+    while(1);
+}
+
 void os_main(void)
 {
+    Task s;
+    os_task_create(&s, NULL, temp_stack, (void (*)(void*)) thread_main, NULL);
     while(1);
 }
