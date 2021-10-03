@@ -1,3 +1,0 @@
-[submodule "musl"]
-	path = musl
-	url = git@github.com:Kronos3/musl.git

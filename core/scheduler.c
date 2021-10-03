@@ -16,7 +16,7 @@
  */
 
 #include <schedule.h>
-#include <string.h>
+//#include <string.h>
 
 static const TaskParam default_params = {
         .pri = 15, // medium priority
