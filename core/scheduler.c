@@ -16,6 +16,7 @@
  */
 
 #include <schedule.h>
+#include <string.h>
 
 static const TaskParam default_params = {
         .pri = 15, // medium priority
@@ -47,7 +48,7 @@ void os_task_create(
         void* arg)
 {
     // Clear the register files
-    memset(self->gpr, 0, sizeof(self->gpr));
+//    memset(self->gpr, 0, sizeof(self->gpr));
 
 #ifdef M4_FPU
     memset(self->gpr, 0, sizeof(self->spr));

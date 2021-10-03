@@ -11,7 +11,7 @@ set(CMAKE_C_STANDARD 99)
 include(toolchain/llvm.cmake)  # Change this to gcc if you want
 include(cmake/build.cmake)
 
-include(cmake/musl.cmake)
+add_subdirectory(musl)
 
 #############################
 # Main kernel sources
@@ -32,7 +32,10 @@ add_link_options(-T ${LINKER_SCRIPT})
 # Main target binary
 ############################
 add_executable(${PROJECT_NAME}.elf ${SOURCES} ${LINKER_SCRIPT})
-target_link_libraries(${PROJECT_NAME}.elf ${MODULES})
+target_link_libraries(
+        ${PROJECT_NAME}.elf
+        ${MODULES}
+)
 
 set(HEX_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)
 set(BIN_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)
