@@ -15,21 +15,25 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <schedule.h>
-
-STACK_KB(test_stack, 2);
-
-static void thread_main(void)
+extern void* memset(void* s, int c, int n)
 {
-    while(1);
-}
+    void* s_ = s;
+    if ((n & 0x3) == 0)
+    {
+        while (n)
+        {
+            *(int*)s++ = c;
+            n -= 4;
+        }
+    }
+    else
+    {
+        while (n--)
+        {
+            *(char*)s++ = c;
+            n -= 4;
+        }
+    }
 
-void board_init(void);
-void os_main(void)
-{
-    board_init();
-
-    Task s;
-    os_task_create(&s, NULL, test_stack, (void (*)(void*)) thread_main, NULL);
-    while(1);
+    return s_;
 }

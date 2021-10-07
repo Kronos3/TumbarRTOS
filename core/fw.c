@@ -16,7 +16,7 @@
  */
 
 #include <global.h>
-#include <stdarg.h>
+//#include <stdarg.h>
 
 void fw_assertion_failure(const char* file, U32 line,
                           const char* expr_str,
@@ -25,13 +25,13 @@ void fw_assertion_failure(const char* file, U32 line,
 //    uprintf("Assertion failed %s:%d : (%s) == 0",
 //            file, line, expr_str);
 
-    va_list args;
-    va_start(args, nargs);
-    for (U32 i = 0; i < nargs; i++)
-    {
-//        uprintf(", %d", va_arg(args, int));
-    }
-    va_end(args);
+//    va_list args;
+//    va_start(args, nargs);
+//    for (U32 i = 0; i < nargs; i++)
+//    {
+////        uprintf(", %d", va_arg(args, int));
+//    }
+//    va_end(args);
 //    uprintf("\r\n");
 
     // Hang Mr. CPU please

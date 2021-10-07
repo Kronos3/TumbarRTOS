@@ -3,7 +3,7 @@ add_library(core STATIC
         main.c
         fw.c
         scheduler.c
-        scheduler.s
+        scheduler.S
         )
 
 # target_link_libraries(core libc)

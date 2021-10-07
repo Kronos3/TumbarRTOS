@@ -1,7 +1,7 @@
 # LLVM is cross-compiler, build for ARMv7m
 add_compile_options(--target=armv7m-none-eabi)
 add_link_options(--target=armv7m-none-eabi)
-add_compile_options(-mimplicit-it=always)
+#add_compile_options(-mimplicit-it=always)
 
 set(TOOLCHAIN_PATH "" CACHE STRING "Path to arm-none-eabi toolchain (bin/lib/include)")
 

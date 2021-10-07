@@ -19,14 +19,6 @@
 #ifndef TUMBARRTOS_ARM_H
 #define TUMBARRTOS_ARM_H
 
-/**
- * Mask all CPU interrupts
- */
-void interrupt_disable(void);
-
-/**
- * Unmask all CPU interrupts
- */
-void interrupt_enable(void);
+#define ARM_ASM_FUNC(name) .globl name ; .type name,%function ; .thumb_func ; name
 
 #endif //TUMBARRTOS_ARM_H

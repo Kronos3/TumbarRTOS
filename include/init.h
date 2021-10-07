@@ -15,21 +15,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <schedule.h>
 
-STACK_KB(test_stack, 2);
+#ifndef TUMBARRTOS_INIT_H
+#define TUMBARRTOS_INIT_H
 
-static void thread_main(void)
-{
-    while(1);
-}
+void SystemInit(void);
 
-void board_init(void);
-void os_main(void)
-{
-    board_init();
-
-    Task s;
-    os_task_create(&s, NULL, test_stack, (void (*)(void*)) thread_main, NULL);
-    while(1);
-}
+#endif //TUMBARRTOS_INIT_H

@@ -19,17 +19,15 @@
 #ifndef TUMBARRTOS_GLOBAL_H
 #define TUMBARRTOS_GLOBAL_H
 
-#include <stdint.h>
+typedef unsigned char U8;
+typedef unsigned short U16;
+typedef unsigned int U32;
+typedef unsigned long long U64;
 
-typedef uint8_t U8;
-typedef uint16_t U16;
-typedef uint32_t U32;
-typedef uint64_t U64;
-
-typedef int8_t I8;
-typedef int16_t I16;
-typedef int32_t I32;
-typedef int64_t I64;
+typedef char I8;
+typedef short I16;
+typedef int I32;
+typedef long long I64;
 
 typedef float F32;
 typedef double F64;
@@ -40,6 +38,10 @@ typedef I32 IXX;
 
 #ifndef NULL
 #define NULL ((void*) (0))
+#endif
+
+#ifndef offsetof
+#define offsetof(st, m) __builtin_offsetof(st, m)
 #endif
 
 #define COMPILE_ASSERT(expr, name) typedef char __compile_assert_##name[(expr) ? 0 : -1]
@@ -58,12 +60,8 @@ __attribute__((noreturn)) void fw_assertion_failure(const char* file, U32 line, 
 #define ELEVENTH_ARGUMENT(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, ...) a11
 #define COUNT_ARGUMENTS(...) ELEVENTH_ARGUMENT(dummy, ## __VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
 
-#define FW_ASSERT_N(expr, ...) do {                \
+#define FW_ASSERT(expr, ...) do {                \
     if (!(expr)) fw_assertion_failure(__FILE__, __LINE__, #expr, COUNT_ARGUMENTS(__VA_ARGS__), ##__VA_ARGS__);   \
-} while(0)
-
-#define FW_ASSERT(expr) do {                \
-    if (!(expr)) fw_assertion_failure(__FILE__, __LINE__, #expr, 0);   \
 } while(0)
 
 #endif //TUMBARRTOS_GLOBAL_H

@@ -11,13 +11,16 @@ set(CMAKE_C_STANDARD 99)
 include(toolchain/llvm.cmake)  # Change this to gcc if you want
 include(cmake/build.cmake)
 
+add_subdirectory(builtin)
+
 #############################
 # Main kernel sources
 #############################
 include_directories(include)
 add_subdirectory(core)
+add_subdirectory(board)
 
-set(MODULES core)
+set(MODULES compiler_builtin board core)
 set(SOURCES startup_stm32f407xx.s)
 
 # Set up the linking program

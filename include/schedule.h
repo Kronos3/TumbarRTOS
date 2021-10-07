@@ -19,7 +19,6 @@
 #ifndef TUMBARRTOS_SCHEDULE_H
 #define TUMBARRTOS_SCHEDULE_H
 
-#include <stddef.h>
 #include <global.h>
 
 #define OS_SCHED_PRI_N 32
@@ -33,16 +32,24 @@
 // Double precision registers
 #define M4_DP_N 16
 
-
-
 typedef struct Task_prv Task;
 typedef struct TaskParam_prv TaskParam;
 typedef struct Scheduler_prv Scheduler;
+
+#define STACK_KB(name, size) static U8 __##name_top_stack[1024 * (size)]; \
+U8* name = __##name_top_stack + sizeof((__##name_top_stack))
 
 struct TaskParam_prv
 {
     U32 pri;                //!< Priority level
 };
+
+typedef enum
+{
+    TASK_IDLE = 0,          //!< Initializing
+    TASK_RUNNING,           //!< Active in scheduler
+    TASK_LOCKED,            //!< Waiting for
+} TaskStatus;
 
 struct Task_prv
 {
@@ -52,16 +59,19 @@ struct Task_prv
     U32 sp;    // r13
     U32 pc;    // r15
 
+    U32 running;
+
 #ifdef M4_FPU
     U32 spr[M4_SP_N];   //!< Single-precision registers
     U32 dpr[M4_DP_N];   //!< Double-precision registers
 #endif
 
-    Task* sched_next;       //!< Round robin pointer on same priority level
+    Task* pri_next;         //!< Round robin pointer on same priority level
+    Task* sched_next;
     TaskParam params;       //!< Task parameters
 };
 
-// Make sure the calculations in scheduler.s are correct
+// Make sure the calculations in scheduler.S are correct
 COMPILE_ASSERT(offsetof(Task, psr) == 56, psr_offset);
 COMPILE_ASSERT(offsetof(Task, sp) == 60, sp_offset);
 COMPILE_ASSERT(offsetof(Task, pc) == 64, pc_offset);
@@ -70,6 +80,8 @@ COMPILE_ASSERT(sizeof(PXX) == 4, pxx_size);
 struct Scheduler_prv
 {
     Task* task_rr_pri[OS_SCHED_PRI_N];
+    Task* current_task;
+    Task* sched_last;
 };
 
 void os_task_create(
@@ -78,5 +90,7 @@ void os_task_create(
         void* stack_ptr,
         void (*thread_main)(void*),
         void* arg);
+
+Task* os_current_task(void);
 
 #endif //TUMBARRTOS_SCHEDULE_H
