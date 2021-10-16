@@ -5,24 +5,22 @@
 #include <uart.h>
 
 #include <stdarg.h>
-#include "../board/stm32f407xx.h"
+#include <stm32l476xx.h>
 
 static inline void usart_putchar(USART_TypeDef* USARTx, U8 c)
 {
-    USARTx->CR1 |= USART_CR1_TE; // enable transmission mode on DR
-
     // Wait until the last character has finished sending
-    while (!(USARTx->SR & USART_SR_TXE));
+    while (!(USARTx->ISR & USART_ISR_TXE));
 
     // Write the character to the UART
-    USARTx->DR = c;
+    USARTx->TDR = c;
 }
 
 static inline void usart_flush(USART_TypeDef* USARTx)
 {
     // wait until TC bit is set (transmission complete)
-    while (!(USARTx->SR & USART_SR_TC));
-    USARTx->SR &= ~USART_SR_TC;
+    while (!(USARTx->ISR & USART_ISR_TC));
+    USARTx->ISR &= ~USART_ISR_TC;
 }
 
 static inline void printf_string(
@@ -98,7 +96,7 @@ I32 uprintf(const char * const format, ...)
     va_list args;
     va_start(args, format);
 
-    USART_TypeDef* USARTx = USART2;
+    USART_TypeDef* USARTx = u_stdout;
 
     const char* iter = format;
     while (*iter)

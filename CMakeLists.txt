@@ -8,7 +8,7 @@ project(TumbarRTOS C ASM)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_STANDARD 99)
 
-set(BOARD_NAME STM32F407VGTx)
+set(BOARD_NAME STM32L476RGTx)
 
 include(toolchain/llvm.cmake)  # Change this to gcc if you want
 include(cmake/build.cmake)
@@ -19,12 +19,13 @@ add_subdirectory(builtin)
 # Main kernel sources
 #############################
 include_directories(include)
-add_subdirectory(core)
-add_subdirectory(board)
+add_subdirectory(Drivers)
+add_subdirectory(Core)
+add_subdirectory(rtos)
 add_subdirectory(util)
 
-set(MODULES compiler_builtin board core util)
-set(SOURCES startup_stm32f407xx.s)
+set(MODULES compiler_builtin rtos util drivers core)
+set(SOURCES startup_stm32l476xx.s)
 
 ############################
 # Main target binary

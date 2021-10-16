@@ -3,3 +3,4 @@ add_library(util STATIC
 )
 
 target_include_directories(util PUBLIC ../include)
+target_link_libraries(util drivers)
