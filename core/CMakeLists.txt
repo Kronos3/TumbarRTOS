@@ -1,9 +1,10 @@
 add_library(core STATIC
-        arm.s
         main.c
+        semaphore.c
         fw.c
         scheduler.c
         scheduler.S
+        tim.c
         )
 
 # target_link_libraries(core libc)

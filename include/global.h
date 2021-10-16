@@ -64,4 +64,7 @@ __attribute__((noreturn)) void fw_assertion_failure(const char* file, U32 line, 
     if (!(expr)) fw_assertion_failure(__FILE__, __LINE__, #expr, COUNT_ARGUMENTS(__VA_ARGS__), ##__VA_ARGS__);   \
 } while(0)
 
+#define DISABLE_INTERRUPTS() __asm__ volatile("cpsid I")
+#define ENABLE_INTERRUPTS() __asm__ volatile("cpsie I")
+
 #endif //TUMBARRTOS_GLOBAL_H

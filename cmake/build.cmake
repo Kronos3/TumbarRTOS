@@ -16,6 +16,12 @@ endif ()
 # Select CFLAGS for instruction set
 add_compile_options(-mcpu=cortex-m4 -mthumb)
 
+# Set up the linking program
+set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/${BOARD_NAME}_FLASH.ld)
+add_link_options(-Wl,-gc-sections,-Map=${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map)
+add_link_options(-mcpu=cortex-m4 -mthumb)
+add_link_options(-T ${LINKER_SCRIPT})
+
 add_compile_options(
         -nostdinc
         -nostdlibinc

@@ -15,21 +15,24 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <schedule.h>
+#include <scheduler.h>
 
-STACK_KB(test_stack, 2);
+STACK_WORDS(test_stack, 128);
 
 static void thread_main(void)
 {
     while(1);
 }
 
+
 void board_init(void);
 void os_main(void)
 {
+    /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
     board_init();
 
     Task s;
     os_task_create(&s, NULL, test_stack, (void (*)(void*)) thread_main, NULL);
-    while(1);
+
+    os_scheduler_main();
 }

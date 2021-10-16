@@ -8,6 +8,8 @@ project(TumbarRTOS C ASM)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_STANDARD 99)
 
+set(BOARD_NAME STM32F407VGTx)
+
 include(toolchain/llvm.cmake)  # Change this to gcc if you want
 include(cmake/build.cmake)
 
@@ -19,15 +21,10 @@ add_subdirectory(builtin)
 include_directories(include)
 add_subdirectory(core)
 add_subdirectory(board)
+add_subdirectory(util)
 
-set(MODULES compiler_builtin board core)
+set(MODULES compiler_builtin board core util)
 set(SOURCES startup_stm32f407xx.s)
-
-# Set up the linking program
-set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32F407VGTx_FLASH.ld)
-add_link_options(-Wl,-gc-sections,-Map=${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map)
-add_link_options(-mcpu=cortex-m4 -mthumb)
-add_link_options(-T ${LINKER_SCRIPT})
 
 ############################
 # Main target binary
