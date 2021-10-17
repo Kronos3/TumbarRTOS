@@ -17,7 +17,6 @@
 
     .syntax unified
     .cpu cortex-m4
-    .fpu softvfp
     .thumb
 
     #include <arm.h>
@@ -48,6 +47,7 @@ ARM_ASM_FUNC(SysTick_Handler):
     cpsid I                 // Disable interrupts
     push {lr}
     bl tim_isr              // Increment system time
+    bl HAL_IncTick          // Increment HAL system time
     ldr r1, =os_running
     ldr r0, [r1]
     tst r0, r0              // Check if the ctx switch is already running
@@ -68,7 +68,13 @@ __ctx_switch_arm:
 
     // Point the first argument to the stack
     mov r0, sp
-    b os_task_isr
+    push {lr}
+    bl os_task_isr
+
+    // The above function exited, meaning a context change should not happen
+    pop {lr}
+    pop {r4-r11}
+    bx lr
 
 ARM_ASM_FUNC(__os_relinquish):
     // We don't need to store any low register values

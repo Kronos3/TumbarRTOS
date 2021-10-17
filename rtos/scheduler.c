@@ -29,6 +29,7 @@ void os_sched_next(void);
 static void idle_task_exit(void);
 static void idle_task_main(void);
 
+static I32 scheduler_running = 0;
 volatile I32 os_running = 0;
 
 static const TaskParam default_params = {
@@ -182,6 +183,11 @@ static void os_task_save_ctx(const ISRStack* isr_stack)
 
 void os_task_isr(const ISRStack* isr_stack)
 {
+    if (!scheduler_running)
+    {
+        return;
+    }
+
     // Save the thread's state to the task
     os_task_save_ctx(isr_stack);
 
@@ -307,5 +313,6 @@ void os_sched_event_clear(Event* self)
 
 void os_scheduler_main(void)
 {
+    scheduler_running = 1;
     os_sched_next();
 }

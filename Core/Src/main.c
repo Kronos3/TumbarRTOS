@@ -22,6 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <led.h>
 #include "io.h"
 /* USER CODE END Includes */
 
@@ -89,7 +90,9 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
-    uprintf("Hello World\r\n");
+    gpio_led_init();
+
+    test_os_main();
 
   /* USER CODE END 2 */
 

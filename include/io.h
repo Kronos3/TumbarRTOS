@@ -48,4 +48,9 @@ void usart_flush(void);
  */
 I32 uprintf(const char* format_str, ...);
 
+/**
+ * Clear the uart screen
+ */
+void uclear(void);
+
 #endif //TUMBARRTOS_IO_H

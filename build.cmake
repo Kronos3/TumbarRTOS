@@ -39,7 +39,6 @@ add_compile_options(
 add_compile_definitions(ARM_MATH_CM4;ARM_MATH_MATRIX_CHECK;ARM_MATH_ROUNDING)
 add_compile_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
 add_link_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
-add_compile_definitions(STM32L47xx)
 
 #############################
 # Main kernel sources
@@ -49,17 +48,26 @@ add_subdirectory(Drivers)
 add_subdirectory(Core)
 add_subdirectory(rtos)
 
-set(MODULES rtos drivers core)
-set(SOURCES Core/Startup/startup_stm32l476rgtx.s)
+set(SOURCES
+        ${DRIVER_SOURCES}
+        ${CORE_SOURCES}
+        ${LINKER_SCRIPT}
+        ${RTOS_SOURCES}
+        Core/Startup/startup_stm32l476rgtx.s
+)
+
+add_compile_definitions(STM32L476xx)
 
 ############################
 # Main target binary
 ############################
-add_executable(${PROJECT_NAME}.elf ${SOURCES} ${LINKER_SCRIPT})
-target_link_libraries(
-        ${PROJECT_NAME}.elf
-        ${MODULES}
-        ${MODULES}
+add_executable(${PROJECT_NAME}.elf ${SOURCES})
+
+target_include_directories(
+        ${PROJECT_NAME}.elf PUBLIC
+        ${DRIVER_INCLUDES}
+        ${CORE_INCLUDES}
+        ${RTOS_INCLUDES}
 )
 
 set(HEX_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)

@@ -16,79 +16,64 @@
  */
 
 #include <global.h>
-#include <scheduler.h>
 #include <stdarg.h>
-#include <io.h>
+#include <stdio.h>
 
 void fw_assertion_failure(const char* file, U32 line,
                           const char* expr_str,
                           U32 nargs, ...)
 {
-    uprintf("Assertion failed %s:%d : (%s) == 0",
-            file, line, expr_str);
+    printf("Assertion failed %s:%d : %s",
+           file, line, expr_str);
 
     va_list args;
     va_start(args, nargs);
     for (U32 i = 0; i < nargs; i++)
     {
-        uprintf(", %d", va_arg(args, int));
+        printf(", %d", va_arg(args, int));
     }
     va_end(args);
-    uprintf("\r\n");
+    printf("\r\n");
 
     // Hang Mr. CPU please
     // Flash LEDs using TIM5
-    __asm__ volatile("bkpt");
-    while (1)
-    {
-        // Create a nice little flashing pattern
-        // This cannot be mistaken for some status code
-//        set_led_1(TIM5->CNT & (1 << 11));
-//        set_led_2(!(TIM5->CNT & (1 << 11)));
-//        set_led_3(!(TIM5->CNT & (1 << 11)));
-//        set_led_4(TIM5->CNT & (1 << 11));
-    }
+    __asm__ volatile("bkpt \n"
+                     "cpsid i");
+    for (;;);
 }
 
-static volatile TaskContext temp_ctx;
-void load_context_from_stack(const U32* pulFaultStackAddress)
-{
-    temp_ctx.gpr[0] = pulFaultStackAddress[0];
-    temp_ctx.gpr[1] = pulFaultStackAddress[1];
-    temp_ctx.gpr[2] = pulFaultStackAddress[2];
-    temp_ctx.gpr[3] = pulFaultStackAddress[3];
+typedef struct {
+    U32 r0;
+    U32 r1;
+    U32 r2;
+    U32 r3;
+    U32 r12;
+    U32 lr;
+    U32 pc;
+    U32 xpsr;
+} ContextFrame;
 
-    temp_ctx.gpr[12] = pulFaultStackAddress[4];
-    temp_ctx.lr = pulFaultStackAddress[5];
-    temp_ctx.pc = pulFaultStackAddress[6];
-    temp_ctx.psr = pulFaultStackAddress[7];
-}
 
-void HardFault_Handler()
+void load_context_from_stack(const ContextFrame* ctx)
 {
-    __asm volatile
-    (
-    " tst lr, #4                                                \n"
-    " ite eq                                                    \n"
-    " mrseq r0, msp                                             \n"
-    " mrsne r0, psp                                             \n"
-    " ldr r1, [r0, #24]                                         \n"
-    " bl load_context_from_stack                                \n"
-    );
-    FW_ASSERT(0 && "Hard-fault error");
-}
+    printf("Hardfault:\r\n"
+            "  r0: 0x%08x\r\n"
+            "  r1: 0x%08x\r\n"
+            "  r2: 0x%08x\r\n"
+            "  r3: 0x%08x\r\n"
+            " r12: 0x%08x\r\n"
+            "  lr: 0x%x\r\n"
+            "  pc: 0x%x\r\n"
+            "xpsr: 0x%x\r\n",
+            ctx->r0,
+            ctx->r1,
+            ctx->r2,
+            ctx->r3,
+            ctx->r12,
+            ctx->lr,
+            ctx->pc,
+            ctx->xpsr);
 
-void MemManage_Handler()
-{
-    FW_ASSERT(0 && "MemManage error");
-}
-
-void BusFault_Handler()
-{
-    FW_ASSERT(0 && "Hard-fault error");
-}
-
-void UsageFault_Handler()
-{
-    FW_ASSERT(0 && "Usage-fault error");
+    FW_ASSERT(0 && "Hard-fault error pc:",
+              ctx->pc);
 }

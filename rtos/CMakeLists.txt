@@ -1,12 +1,16 @@
-add_library(rtos STATIC
-        main.c
-        semaphore.c
-        fw.c
-        scheduler.c
-        scheduler.S
-        tim.c
-        io.c
-        )
+set(RTOS_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/main.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/semaphore.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/fw.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/scheduler.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/scheduler.S
+        ${CMAKE_CURRENT_SOURCE_DIR}/tim.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/led.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/io.c
+        PARENT_SCOPE
+)
 
-# target_link_libraries(rtos libc)
-target_compile_options(rtos PUBLIC ${RTOS_CFLAGS})
+set(RTOS_INCLUDES
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include
+        PARENT_SCOPE
+)

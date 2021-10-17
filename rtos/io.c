@@ -1,6 +1,17 @@
 #include <io.h>
 #include <stdarg.h>
 
+int __io_putchar(int ch)
+{
+    usart_putc(ch);
+    return 1;
+}
+
+int __io_getchar(void)
+{
+    return usart_getc();
+}
+
 static inline void printf_string(const char* string)
 {
     for (; *string; string++)
@@ -49,17 +60,32 @@ static inline void usart_put_dec(int i, char pad_char, U8 pad_amt)
     usart_put_udec(i, pad_char, pad_amt);
 }
 
-static inline void usart_put_hex(int i, char base_hex_a)
+static inline void usart_put_hex(U32 x, char base_hex_a, char pad_char, U8 pad_amt)
 {
-    // TODO(tumbar) Make this not shitty
-    usart_putc(base_hex_a + ((i & 0xF0000000) >> 28));
-    usart_putc(base_hex_a + ((i & 0x0F000000) >> 24));
-    usart_putc(base_hex_a + ((i & 0x00F00000) >> 20));
-    usart_putc(base_hex_a + ((i & 0x000F0000) >> 16));
-    usart_putc(base_hex_a + ((i & 0x0000F000) >> 12));
-    usart_putc(base_hex_a + ((i & 0x00000F00) >> 8));
-    usart_putc(base_hex_a + ((i & 0x000000F0) >> 4));
-    usart_putc(base_hex_a + ((i & 0x0000000F) >> 0));
+    I32 printed = 0;
+    for (U32 i = 0; i < 8; i++)
+    {
+        U32 j = (x >> 28) & 0xF;
+        if (j >= 0xA)
+        {
+            printed = 1;
+            usart_putc(base_hex_a + (j - 0xA));
+        }
+        else if (j == 0 && !printed && i != 7)
+        {
+            if ((8 - i - 1) < pad_amt)
+            {
+                usart_putc(pad_char);
+            }
+        }
+        else
+        {
+            printed = 1;
+            usart_putc('0' + j);
+        }
+
+        x <<= 4;
+    }
 }
 
 I32 uprintf(const char * const format, ...)
@@ -92,10 +118,10 @@ I32 uprintf(const char * const format, ...)
                     usart_put_udec(va_arg(args, unsigned), pad_char, pad_amt);
                     break;
                 case 'x':
-                    usart_put_hex(va_arg(args, int), 'a');
+                    usart_put_hex(va_arg(args, int), 'a', pad_char, pad_amt);
                     break;
                 case 'X':
-                    usart_put_hex(va_arg(args, int), 'A');
+                    usart_put_hex(va_arg(args, int), 'A', pad_char, pad_amt);
                     break;
                 default:
                     pad_char = *(iter++);
@@ -108,6 +134,14 @@ I32 uprintf(const char * const format, ...)
                         else if (*iter == 'u')
                         {
                             usart_put_udec(va_arg(args, int), pad_char, pad_amt);
+                        }
+                        else if (*iter == 'x')
+                        {
+                            usart_put_hex(va_arg(args, int), 'a', pad_char, pad_amt);
+                        }
+                        else if (*iter == 'x')
+                        {
+                            usart_put_hex(va_arg(args, int), 'A', pad_char, pad_amt);
                         }
                     }
                     FW_ASSERT(pad_amt <= 9, pad_amt);
