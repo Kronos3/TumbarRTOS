@@ -291,7 +291,7 @@ HAL_StatusTypeDef HAL_EXTI_GetConfigLine(EXTI_HandleTypeDef *hexti, EXTI_ConfigT
   linepos = (pExtiConfig->Line & EXTI_PIN_MASK);
   maskline = (1uL << linepos);
 
-  /* 1] Get rtos mode : interrupt */
+  /* 1] Get core mode : interrupt */
   regaddr = (&EXTI->IMR1 + (EXTI_MODE_OFFSET * offset));
   regval = *regaddr;
 

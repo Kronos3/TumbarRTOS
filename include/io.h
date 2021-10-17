@@ -2,8 +2,8 @@
 // Created by tumbar on 10/16/21.
 //
 
-#ifndef TUMBARRTOS_UART_H
-#define TUMBARRTOS_UART_H
+#ifndef TUMBARRTOS_IO_H
+#define TUMBARRTOS_IO_H
 
 #include <global.h>
 
@@ -23,7 +23,22 @@
 #define UART_STOPBITS_1             0x00000000U     /*!< UART frame with 1 stop bit    */
 #define UART_HWCONTROL_NONE         0x00000000U     /*!< No hardware control       */
 
+/**
+ * Write a character to stdout (USART2)
+ * @param c Character to write
+ */
+void usart_putc(char c);
 
+/**
+ * Read a character from stdin (USART2)
+ * @return Character read from uart
+ */
+char usart_getc(void);
+
+/**
+ * Wait until the UART finishes transmitting
+ */
+void usart_flush(void);
 
 /**
  * Printf to uart
@@ -33,4 +48,4 @@
  */
 I32 uprintf(const char* format_str, ...);
 
-#endif //TUMBARRTOS_UART_H
+#endif //TUMBARRTOS_IO_H

@@ -5,6 +5,7 @@ add_library(rtos STATIC
         scheduler.c
         scheduler.S
         tim.c
+        io.c
         )
 
 # target_link_libraries(rtos libc)

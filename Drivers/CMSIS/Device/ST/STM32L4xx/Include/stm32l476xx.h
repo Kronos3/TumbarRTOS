@@ -7,7 +7,7 @@
   *          This file contains:
   *           - Data structures and the address mapping for all peripherals
   *           - Peripheral's registers declarations and bits definition
-  *           - Macros to access peripheralï¿½s registers hardware
+  *           - Macros to access peripheral’s registers hardware
   *
   ******************************************************************************
   * @attention
@@ -163,7 +163,7 @@ typedef enum
   * @}
   */
 
-#include "core_cm4.h"             /* Cortex-M4 processor and rtos peripherals */
+#include "core_cm4.h"             /* Cortex-M4 processor and core peripherals */
 #include "system_stm32l4xx.h"
 #include <stdint.h>
 
@@ -1019,7 +1019,7 @@ typedef struct
   uint32_t Reserved30[2];             /*!<  Reserved                                     030h*/
   __IO uint32_t GCCFG;                /*!<  General Purpose IO Register                  038h*/
   __IO uint32_t CID;                  /*!<  User ID Register                             03Ch*/
-  __IO uint32_t GSNPSID;              /*!<  USB_OTG rtos ID                              040h*/
+  __IO uint32_t GSNPSID;              /*!<  USB_OTG core ID                              040h*/
   __IO uint32_t GHWCFG1;              /*!<  User HW config1                              044h*/
   __IO uint32_t GHWCFG2;              /*!<  User HW config2                              048h*/
   __IO uint32_t GHWCFG3;              /*!<  User HW config3                              04Ch*/

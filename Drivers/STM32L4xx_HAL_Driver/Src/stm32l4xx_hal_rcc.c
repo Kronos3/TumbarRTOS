@@ -970,7 +970,7 @@ HAL_StatusTypeDef HAL_RCC_OscConfig(RCC_OscInitTypeDef  *RCC_OscInitStruct)
         }
         else
         {
-          /* PLL is already used as System rtos clock */
+          /* PLL is already used as System core clock */
           return HAL_ERROR;
         }
       }
@@ -1045,7 +1045,7 @@ HAL_StatusTypeDef HAL_RCC_OscConfig(RCC_OscInitTypeDef  *RCC_OscInitStruct)
       }
       else
       {
-        /* PLL is already used as System rtos clock */
+        /* PLL is already used as System core clock */
         return HAL_ERROR;
       }
     }

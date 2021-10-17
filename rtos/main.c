@@ -16,7 +16,7 @@
  */
 
 #include <scheduler.h>
-#include <uart.h>
+#include <io.h>
 
 STACK_WORDS(test_stack, 128);
 

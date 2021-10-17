@@ -162,9 +162,9 @@ void HAL_PWR_DisableBkUpAccess(void)
     =====================================
     [..]
       The devices feature 8 low-power modes:
-      (+) Low-power Run mode: rtos and peripherals are running, main regulator off, low power regulator on.
-      (+) Sleep mode: Cortex-M4 rtos stopped, peripherals kept running, main and low power regulators on.
-      (+) Low-power Sleep mode: Cortex-M4 rtos stopped, peripherals kept running, main regulator off, low power regulator on.
+      (+) Low-power Run mode: core and peripherals are running, main regulator off, low power regulator on.
+      (+) Sleep mode: Cortex-M4 core stopped, peripherals kept running, main and low power regulators on.
+      (+) Low-power Sleep mode: Cortex-M4 core stopped, peripherals kept running, main regulator off, low power regulator on.
       (+) Stop 0 mode: all clocks are stopped except LSI and LSE, main and low power regulators on.
       (+) Stop 1 mode: all clocks are stopped except LSI and LSE, main regulator off, low power regulator on.
       (+) Stop 2 mode: all clocks are stopped except LSI and LSE, main regulator off, low power regulator on, reduced set of waking up IPs compared to Stop 1 mode.
