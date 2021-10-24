@@ -56,7 +56,7 @@ typedef struct {
 
 void load_context_from_stack(const ContextFrame* ctx)
 {
-    printf("Hardfault:\r\n"
+    printf("\r\nHardfault:\r\n"
             "  r0: 0x%08x\r\n"
             "  r1: 0x%08x\r\n"
             "  r2: 0x%08x\r\n"

@@ -20,77 +20,76 @@
     .thumb
 
     #include <arm.h>
+    #include <RTOSConfig.h>
 
-ARM_ASM_FUNC(__os_set_task_ctx):
-    // Load all the registers except the SP, PC
-    ldr r1, [r0, #56]       // Load psr
-    add r0, r0, #8
-    msr APSR_nzcvqg, r1     // Write combined program status
-    ldm r0, {r2-r12,lr}     // Load register file
-    ldr sp, [r0, #60 - 8]   // Load sp
+ARM_ASM_FUNC(xPortPendSVHandler):
+    mrs r0, psp
+    isb
 
-    // Load/push remaining temp registers target values
-    ldr r1, [r0, #64 - 8]   // Grab pc
-    push {r1}
+    ldr r3, os_current_tcb_const // load the current tcb
+    ldr r2, [r3]
 
-    ldr r1, [r0, #8]        // Grab r0
-    push {r1}
+    tst r14, #0x10              // check if the FPU is in use
+    it eq
+    vstmdbeq r0!, {s16-s31}     // save the FPU registers
 
-    ldr r1, [r0, #-4]       // Grab r1
+    stmdb r0!, {r4-r11, r14}    // save core registers
+    str r0, [r2]                // save the current stack position into the tcb
 
-    // Resume task execution
-    pop {r0}
-    cpsie I                 // re-enable interrupts
-    pop {pc}
+    push {r0, r3}
+    mov r0, configMAX_SYSCALL_INTERRUPT_PRIORITY
+    msr basepri, r0
+    dsb
+    isb
 
-ARM_ASM_FUNC(SysTick_Handler):
-    cpsid I                 // Disable interrupts
-    push {lr}
-    bl tim_isr              // Increment system time
-    bl HAL_IncTick          // Increment HAL system time
-    ldr r1, =os_running
+    bl os_task_context_switch
+    mov r0, #0
+    msr basepri, r0
+    pop {r0, r3}
+
+    // Load the stack of the next task
+    ldr r1, [r3]
     ldr r0, [r1]
-    tst r0, r0              // Check if the ctx switch is already running
-    beq __ctx_switch_arm
-    cpsie I                 // Enable interrupts
-    pop {pc}                // Exit the handler
 
-__ctx_switch_arm:
-    pop {lr}
-    // Save the context
-    // Stack has the following:
-    // xPSR   <----- sp
-    // lr
-    // r12
-    // r0 - r3
-    // pc
-    push {r4-r11}
+    ldmia r0!, {r4-r11, r14}    // restore the core registers
 
-    // Point the first argument to the stack
-    mov r0, sp
-    push {lr}
-    bl os_task_isr
+    tst r14, #0x10              // check if the fpu was in use
+    it eq
+    vldmiaeq r0!, {s16-s31}     // restore fpu registers
 
-    // The above function exited, meaning a context change should not happen
-    pop {lr}
-    pop {r4-r11}
-    bx lr
+    msr psp, r0
+    isb
 
-ARM_ASM_FUNC(__os_relinquish):
-    // We don't need to store any low register values
-    // This is not an interrupt so that context save is done
-    // by the compiler. We just need to store sp, lr, pc
-//    add r0, #4      // We don't need to store r0, it's the return value
-//    stmia r0!, {r1, r2, r3, r4, r5, r6, r7}
-//    str r8, [r0, #0]
-//    str r9, [r0, #4]
-//    str r10, [r0, #8]
-//    str r11, [r0, #12]
-//    str r12, [r0, #16]
-//    str r13, [r0, #20]
-    str lr, [r0, #52]
-    str sp, [r0, #60]
-    str lr, [r0, #64]   // store lr in pc (we want to continue execution with this task)
+    bx r14
+    .align 4
 
-    // Schedule another task
-    b os_sched_next
+os_current_tcb_const: .word os_current_tcb
+os_next_tcb_const: .word os_next_tcb
+
+ARM_ASM_FUNC(SVC_Handler):
+    ldr r3, os_current_tcb_const
+    ldr r2, [r3]
+    ldr r0, [r2]    // load the sp
+    ldmia r0!, {r4-r11, r14}    // restore core registers
+    msr psp, r0
+    isb
+    mov r0, #0
+    msr basepri, r0
+    bx r14
+
+
+ARM_ASM_FUNC(os_start_first_task):
+    ldr r0, =0xE000ED08     // Use the NVIC offset register to locate the system stack
+    ldr r0, [r0]
+    ldr r0, [r0]
+    msr msp, r0             // Reset stack position to original point
+    mov r0, #0
+    msr control, r0         // clear control
+    cpsie i                 // enable interrupts (CPU)
+    cpsie f                 // enable interrupts (FPU)
+    dsb
+    isb
+    svc 0                   // initiate first task
+    nop
+    bx lr                   // should not be reached
+    .ltorg

@@ -1,3 +1,4 @@
+#include <sys/cdefs.h>
 /*
  * This file is part of the TumbarRTOS
  * Copyright (c) 2021 Andrei Tumbar.
@@ -19,48 +20,34 @@
 #include <scheduler.h>
 #include <tim.h>
 
+#include <stm32l4xx.h>
+
 void* memset(void* s, int c, int n);
-extern __attribute__((noreturn)) void __os_set_task_ctx(TaskContext* self);
-U32 __os_relinquish(TaskContext* self);
-void os_sched_next(void);
 
 // The idle task will simply absorb cycles when no
 // task is ready to run
-static void idle_task_exit(void);
-static void idle_task_main(void);
-
-static I32 scheduler_running = 0;
-volatile I32 os_running = 0;
+_Noreturn static void idle_task_main(void);
 
 static const TaskParam default_params = {
         .pri = 15, // medium priority
 };
 
-static U32 idle_stack[2];
-static Task idle_task = {
-        .context = {
-                .gpr = {0},
-                .lr = (PXX)idle_task_exit,
-                .pc = (PXX)idle_task_main,
-                .psr = 0x0,
-                .sp = (PXX)(idle_stack + 2)
-        }
-};
+static U32 idle_stack[20];
+static Task idle_task;
 
 static Scheduler os_scheduler = {
         .task_rr_pri = {NULL},
-        .current_task = NULL,
         .event_table = {0},
-        .event_registered = 0
+        .event_registered = 0,
 };
 
+Task* volatile os_current_tcb;
+Task* volatile os_next_tcb;
+
+static bool_t os_started = FALSE;
 static const Task volatile* current_task;
 
-static void idle_task_exit(void)
-{
-    FW_ASSERT(0 && "Idle task has exited");
-}
-
+__attribute__ ((noreturn))
 static void idle_task_main(void)
 {
     while (1);
@@ -72,7 +59,6 @@ static void idle_task_main(void)
  */
 static void os_task_exit(void)
 {
-    OS_CRITICAL_ENTER();
     // Remove this task from execution
     Task* self = os_current_task();
     if (self->next)
@@ -91,7 +77,7 @@ static void os_task_exit(void)
     }
 
     self->state = TASK_STOPPED;
-    os_sched_next();
+    // TODO(tumbar) pendSV
 }
 
 void os_task_create(
@@ -101,19 +87,10 @@ void os_task_create(
         void (* thread_main)(void*),
         void* arg)
 {
-    // Clear the register files
-    memset(self->context.gpr, 0, sizeof(self->context.gpr));
+    FW_ASSERT(self);
+    FW_ASSERT(stack_ptr);
+    FW_ASSERT(thread_main);
 
-#ifdef M4_FPU
-    memset(self->gpr, 0, sizeof(self->spr));
-    memset(self->gpr, 0, sizeof(self->dpr));
-#endif
-
-    self->context.psr = 0; // clear the CPU flags
-    self->context.gpr[0] = (PXX)arg; // pass the first argument to the thread
-    self->context.lr = (U32) os_task_exit;
-    self->context.sp = (U32) stack_ptr;
-    self->context.pc = (U32) thread_main;
 
     if (!params)
     {
@@ -122,10 +99,13 @@ void os_task_create(
 
     // Store provided parameters
     FW_ASSERT(params->pri < OS_SCHED_PRI_N, params->pri);
+    self->sp = stack_ptr;
     self->params = *params;
     self->state = TASK_READY;
     self->blocker = NULL;
     self->last_service = 0; // never been serviced
+
+    os_task_initialize_stack(self, thread_main, arg);
 
     // Add to linked list
     self->next = os_scheduler.task_rr_pri[params->pri];
@@ -139,74 +119,19 @@ void os_task_create(
     os_scheduler.task_rr_pri[params->pri] = self;
 }
 
-typedef struct {
-    U32 r4;
-    U32 r5;
-    U32 r6;
-    U32 r7;
-    U32 r8;
-    U32 r9;
-    U32 r10;
-    U32 r11;
-    U32 xPSR;
-    U32 lr;
-    U32 r12;
-    U32 r0;
-    U32 r1;
-    U32 r2;
-    U32 r3;
-    U32 pc;
-} ISRStack;
-
-static void os_task_save_ctx(const ISRStack* isr_stack)
+bool_t os_sched_next(void)
 {
-    Task* task = os_current_task();
-    task->context.gpr[0] = isr_stack->r0;
-    task->context.gpr[1] = isr_stack->r1;
-    task->context.gpr[2] = isr_stack->r2;
-    task->context.gpr[3] = isr_stack->r3;
-    task->context.gpr[4] = isr_stack->r4;
-    task->context.gpr[5] = isr_stack->r5;
-    task->context.gpr[6] = isr_stack->r6;
-    task->context.gpr[7] = isr_stack->r7;
-    task->context.gpr[8] = isr_stack->r8;
-    task->context.gpr[9] = isr_stack->r9;
-    task->context.gpr[10] = isr_stack->r10;
-    task->context.gpr[11] = isr_stack->r11;
-    task->context.gpr[12] = isr_stack->r12;
-
-    task->context.lr = isr_stack->lr;
-    task->context.psr = isr_stack->xPSR;
-    task->context.sp = ((PXX)isr_stack) + sizeof(ISRStack);
-    task->context.pc = isr_stack->pc;
-}
-
-void os_task_isr(const ISRStack* isr_stack)
-{
-    if (!scheduler_running)
-    {
-        return;
-    }
-
-    // Save the thread's state to the task
-    os_task_save_ctx(isr_stack);
-
-    // Schedule another task
-    os_sched_next();
-}
-
-void os_sched_next(void)
-{
-    OS_CRITICAL_ENTER();
-
     Scheduler* self = &os_scheduler;
 
     // Tell the task about when it was serviced
     U32 curr_tim = tim_get();
 
-    if (self->current_task)
+    // Current TCB will not be set on first
+    // task scheduling, in this case no task
+    // has been serviced
+    if (os_current_tcb)
     {
-        self->current_task->last_service = curr_tim;
+        os_current_tcb->last_service = curr_tim;
     }
 
     // Update all the task states
@@ -214,7 +139,7 @@ void os_sched_next(void)
     {
         for (Task* pri_curr = self->task_rr_pri[i]; pri_curr; pri_curr = pri_curr->next)
         {
-            switch(pri_curr->state)
+            switch (pri_curr->state)
             {
                 case TASK_BLOCKED:
                     // Service the blocker to check if it's now ready to run
@@ -262,21 +187,15 @@ void os_sched_next(void)
     }
 
     // If no tasks are ready to execute, run the idle task
-    if (!next_task)
-    {
-        next_task = &idle_task;
-    }
+    if (!next_task) next_task = &idle_task;
 
-    __asm__ volatile("cpsid I"); // disable interrupts
-    OS_CRITICAL_EXIT();
-    os_scheduler.current_task = next_task;
-    __os_set_task_ctx(&next_task->context);
-    FW_ASSERT(0 && "Failed to switch to task", next_task);
+    os_next_tcb = next_task;
+    return os_next_tcb != os_current_tcb;
 }
 
 Task* os_current_task(void)
 {
-    return os_scheduler.current_task;
+    return os_current_tcb;
 }
 
 void os_sched_block(Event* self)
@@ -284,8 +203,6 @@ void os_sched_block(Event* self)
     Task* task = os_current_task();
     task->blocker = self;
     task->state = TASK_BLOCKED;
-
-    __os_relinquish(&task->context);
 }
 
 I32 os_sched_alloc_event(Event* self)
@@ -313,6 +230,86 @@ void os_sched_event_clear(Event* self)
 
 void os_scheduler_main(void)
 {
-    scheduler_running = 1;
+    OS_DISABLE_INTERRUPTS();
+
+    // Initialize the idle task
+    memset(&idle_task, 0, sizeof(idle_task));
+    idle_task.sp = idle_stack + sizeof(idle_stack);
+    idle_task.next = os_scheduler.task_rr_pri[OS_SCHED_PRI_N - 1];
+    if (os_scheduler.task_rr_pri[OS_SCHED_PRI_N - 1])
+    {
+        os_scheduler.task_rr_pri[OS_SCHED_PRI_N - 1]->prev = &idle_task;
+    }
+
+    os_scheduler.task_rr_pri[OS_SCHED_PRI_N - 1] = &idle_task;
+
     os_sched_next();
+    os_task_initialize_stack(
+            os_next_tcb,
+            (void (*)(void*)) idle_task_main,
+            NULL);
+    os_started = TRUE;
+    os_current_tcb = os_next_tcb;
+    os_start_first_task();
+    FW_ASSERT(0 && "Start task didn't work");
+}
+
+/* Constants required to set up the initial stack. */
+#define portINITIAL_XPSR                      ( 0x01000000 )
+#define portINITIAL_EXC_RETURN                ( 0xfffffffd )
+
+void os_task_initialize_stack(
+        Task* self,
+        void (*entry) (void*),
+        void* argument)
+{
+    *--self->sp = portINITIAL_XPSR; // xPSR
+    *--self->sp = (PXX) entry; // pc
+    *--self->sp = (PXX) os_task_exit; // lr
+    self->sp -= 4; // r12, r13, r2, r1
+    *--self->sp = (PXX) argument; // r0
+    *--self->sp = portINITIAL_EXC_RETURN;
+    self->sp -= 8; // r11 - r4
+}
+
+void os_task_context_switch(void)
+{
+    OS_DISABLE_INTERRUPTS();
+    {
+        FW_ASSERT(os_next_tcb);
+        os_current_tcb = os_next_tcb;
+        os_next_tcb = NULL;
+    }
+    OS_ENABLE_INTERRUPTS();
+}
+
+void os_pend_sv(void)
+{
+    // Pend a context switch service
+    SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+}
+
+void xPortSysTickHandler(void)
+{
+    // Interrupting in the middle of SysTick will
+    // cause issues with the rest of the OS
+    OS_DISABLE_INTERRUPTS();
+    if (os_started)
+    {
+        // Increment the system time
+        tim_isr();
+
+        // Check is we need to perform a context switch
+        if (os_sched_next())
+        {
+            os_pend_sv();
+        }
+        else
+        {
+            // No context switch is needed
+            // Clear next TCB
+            os_next_tcb = NULL;
+        }
+    }
+    OS_ENABLE_INTERRUPTS();
 }

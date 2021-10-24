@@ -36,6 +36,11 @@ typedef double F64;
 typedef U32 PXX;
 typedef I32 IXX;
 
+typedef enum {
+    FALSE = 0,
+    TRUE = 1,
+} bool_t;
+
 #ifndef NULL
 #define NULL ((void*) (0))
 #endif
@@ -66,5 +71,8 @@ __attribute__((noreturn)) void fw_assertion_failure(const char* file, U32 line, 
 
 #define DISABLE_INTERRUPTS() __asm__ volatile("cpsid I")
 #define ENABLE_INTERRUPTS() __asm__ volatile("cpsie I")
+
+COMPILE_ASSERT(sizeof(U64) == 8, sizeof_u64);
+COMPILE_ASSERT(sizeof(I64) == 8, sizeof_i64);
 
 #endif //TUMBARRTOS_GLOBAL_H

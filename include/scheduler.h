@@ -22,7 +22,6 @@
 #include <global.h>
 #include <rtos.h>
 
-typedef struct TaskContext_prv TaskContext;
 typedef struct Scheduler_prv Scheduler;
 typedef struct Event_prv Event;
 
@@ -36,36 +35,16 @@ struct TaskParam_prv
 
 typedef enum
 {
-    TASK_BLOCKED = 0,       //!< Waiting for event
     TASK_READY,             //!< Active in scheduler
+    TASK_BLOCKED,           //!< Waiting for event
     TASK_SUSPEND,           //!< Waiting to be manually reactivated
     TASK_STOPPED            //!< Execution has finished
 } TaskStatus;
 
-struct TaskContext_prv
-{
-    U32 gpr[M4_GPR_N];  //!< General purpose register file
-    U32 lr;    // r14
-    U32 psr;            //!< Program status register
-    U32 sp;    // r13
-    U32 pc;    // r15
-
-#ifdef M4_FPU
-    U32 spr[M4_SP_N];   //!< Single-precision registers
-    U32 dpr[M4_DP_N];   //!< Double-precision registers
-#endif
-};
-
-// Make sure the calculations in scheduler.S are correct
-COMPILE_ASSERT(offsetof(TaskContext, lr) == 52, lr_offset);
-COMPILE_ASSERT(offsetof(TaskContext, psr) == 56, psr_offset);
-COMPILE_ASSERT(offsetof(TaskContext, sp) == 60, sp_offset);
-COMPILE_ASSERT(offsetof(TaskContext, pc) == 64, pc_offset);
-COMPILE_ASSERT(sizeof(PXX) == 4, pxx_size);
-
 struct Task_prv
 {
-    TaskContext context;    //!< CPU context
+    PXX* sp;                //!< Last stack pointer of task (psp)
+
     TaskParam params;       //!< Task parameters
 
     TaskStatus state;       //!< Current state
@@ -94,17 +73,13 @@ COMPILE_ASSERT((OS_MAX_EVENT % 2) == 0, os_event_multiple_of_2);
 struct Scheduler_prv
 {
     Task* task_rr_pri[OS_SCHED_PRI_N];      //!< Task table
-    Task* current_task;                     //!< Currently executing task
 
     U16 event_table[OS_MAX_EVENT];          //!< Bit table of events
     U32 event_registered;                   //!< Number of events registered
 };
 
-extern volatile I32 os_running;
-
-#define OS_CRITICAL_ENTER() os_running = 1
-#define OS_CRITICAL_EXIT() os_running = 0
-#define OS_CRITICAL(expr) do { OS_CRITICAL_ENTER(); { expr; } OS_CRITICAL_EXIT(); } while (0)
+#define OS_DISABLE_INTERRUPTS() __asm volatile (" cpsid i")
+#define OS_ENABLE_INTERRUPTS() __asm volatile (" cpsie i")
 
 /**
  * Ask the os for a new event bit in the
@@ -133,5 +108,14 @@ void os_sched_event_fire(Event* self);
 void os_sched_event_clear(Event* self);
 
 void os_scheduler_main(void);
+
+void os_task_initialize_stack(Task* self,
+                              void (*entry) (void*),
+                              void* argument);
+
+void os_pend_sv(void);
+
+extern void os_start_first_task(void);
+extern void xPortPendSVHandler(void);
 
 #endif //TUMBARRTOS_SCHEDULER_H

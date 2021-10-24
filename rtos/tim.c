@@ -4,7 +4,7 @@
 
 #include <tim.h>
 
-static U32 os_tick_ms = 0;
+static U64 os_tick_ms = 0;
 
 void tim_isr(void)
 {

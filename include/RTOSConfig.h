@@ -11,15 +11,12 @@
 // Number of events (x32) to support
 #define OS_MAX_EVENT 4
 
-// General purpose registers (excluding SP, LR, PC)
-#define M4_GPR_N 13
+#define vPortSVCHandler    SVC_Handler
+#define xPortPendSVHandler PendSV_Handler
+#define xPortSysTickHandler SysTick_Handler
 
-#ifdef M4_FPU
-// Single precision registers
-#define M4_SP_N 32
+#define NAKED __attribute__ ((naked))
 
-// Double precision registers
-#define M4_DP_N 16
-#endif
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY (5<<(8-4))
 
 #endif //TUMBARRTOS_RTOSCONFIG_H
