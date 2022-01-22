@@ -17,6 +17,7 @@
 
 #include <scheduler.h>
 #include <io.h>
+#include <stdio.h>
 
 STACK_WORDS(test_stack, 128);
 
@@ -28,9 +29,9 @@ static void thread_main(void)
 
 void test_os_main(void)
 {
-    uprintf("Hello world\r\n");
+    printf("Hello world\r\n");
     Task s;
-    os_task_create(&s, NULL, test_stack, (void (*)(void*)) thread_main, NULL);
+    os_task_create(&s, 15, test_stack, (void (*)(void*)) thread_main, NULL);
 
     os_scheduler_main();
 }

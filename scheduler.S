@@ -29,11 +29,11 @@ ARM_ASM_FUNC(xPortPendSVHandler):
     ldr r3, os_current_tcb_const // load the current tcb
     ldr r2, [r3]
 
-    tst r14, #0x10              // check if the FPU is in use
+    tst lr, #0x10               // check if the FPU is in use
     it eq
     vstmdbeq r0!, {s16-s31}     // save the FPU registers
 
-    stmdb r0!, {r4-r11, r14}    // save core registers
+    stmdb r0!, {r4-r11, lr}     // save core registers
     str r0, [r2]                // save the current stack position into the tcb
 
     push {r0, r3}
@@ -51,31 +51,31 @@ ARM_ASM_FUNC(xPortPendSVHandler):
     ldr r1, [r3]
     ldr r0, [r1]
 
-    ldmia r0!, {r4-r11, r14}    // restore the core registers
+    ldmia r0!, {r4-r11, lr}     // restore the core registers
 
-    tst r14, #0x10              // check if the fpu was in use
+    tst lr, #0x10               // check if the fpu was in use
     it eq
     vldmiaeq r0!, {s16-s31}     // restore fpu registers
 
     msr psp, r0
     isb
 
-    bx r14
+    bx lr
     .align 4
 
 os_current_tcb_const: .word os_current_tcb
 os_next_tcb_const: .word os_next_tcb
 
-ARM_ASM_FUNC(SVC_Handler):
+ARM_ASM_FUNC(vPortSVCHandler):
     ldr r3, os_current_tcb_const
     ldr r2, [r3]
     ldr r0, [r2]    // load the sp
-    ldmia r0!, {r4-r11, r14}    // restore core registers
+    ldmia r0!, {r4-r11, lr}    // restore core registers
     msr psp, r0
     isb
     mov r0, #0
     msr basepri, r0
-    bx r14
+    bx lr
 
 
 ARM_ASM_FUNC(os_start_first_task):

@@ -14,14 +14,14 @@ typedef struct TaskParam_prv TaskParam;
 /**
  * Create a new task
  * @param self Task block to initialize
- * @param params Task parameters (NULL if default)
+ * @param pri Task priority level
  * @param stack_ptr Pointer to top of stack
  * @param thread_main Task execution pointer
  * @param arg Argument to pass to task
  */
 void os_task_create(
         Task* self,
-        const TaskParam* params,
+        U32 pri,
         void* stack_ptr,
         void (*thread_main)(void*),
         void* arg);

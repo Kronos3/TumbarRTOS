@@ -19,6 +19,10 @@
 #ifndef TUMBARRTOS_GLOBAL_H
 #define TUMBARRTOS_GLOBAL_H
 
+#ifndef __TUMBAR_RTOS__
+#error "__TUMBAR_RTOS__ must be linked to use this header"
+#endif
+
 typedef unsigned char U8;
 typedef unsigned short U16;
 typedef unsigned int U32;
@@ -32,7 +36,6 @@ typedef long long I64;
 typedef float F32;
 typedef double F64;
 
-// TODO(tumbar) Figure out why clangd is not detecting the change (uintptr_t)
 typedef U32 PXX;
 typedef I32 IXX;
 
@@ -72,7 +75,17 @@ __attribute__((noreturn)) void fw_assertion_failure(const char* file, U32 line, 
 #define DISABLE_INTERRUPTS() __asm__ volatile("cpsid I")
 #define ENABLE_INTERRUPTS() __asm__ volatile("cpsie I")
 
+COMPILE_ASSERT(sizeof(IXX) == sizeof(PXX), sizeof_ixx_pxx);
+COMPILE_ASSERT(sizeof(void*) == sizeof(PXX), sizeof_ptr); // enforce 32-bit target
+COMPILE_ASSERT(sizeof(I8) == 1, sizeof_u8);
+COMPILE_ASSERT(sizeof(U8) == 1, sizeof_i8);
+COMPILE_ASSERT(sizeof(U16) == 2, sizeof_u16);
+COMPILE_ASSERT(sizeof(I16) == 2, sizeof_i16);
+COMPILE_ASSERT(sizeof(U32) == 4, sizeof_u32);
+COMPILE_ASSERT(sizeof(I32) == 4, sizeof_i32);
 COMPILE_ASSERT(sizeof(U64) == 8, sizeof_u64);
 COMPILE_ASSERT(sizeof(I64) == 8, sizeof_i64);
+COMPILE_ASSERT(sizeof(F32) == 4, sizeof_f32);
+COMPILE_ASSERT(sizeof(F64) == 8, sizeof_f64);
 
 #endif //TUMBARRTOS_GLOBAL_H

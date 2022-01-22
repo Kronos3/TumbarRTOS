@@ -28,11 +28,6 @@ typedef struct Event_prv Event;
 #define STACK_WORDS(name, num_words) static U8 __##name_top_stack[sizeof(PXX) * (num_words)]; \
 U8* name = __##name_top_stack + sizeof((__##name_top_stack))
 
-struct TaskParam_prv
-{
-    U32 pri;                //!< Priority level
-};
-
 typedef enum
 {
     TASK_READY,             //!< Active in scheduler
@@ -45,7 +40,8 @@ struct Task_prv
 {
     PXX* sp;                //!< Last stack pointer of task (psp)
 
-    TaskParam params;       //!< Task parameters
+//    TaskParam params;       //!< Task parameters
+    U32 pri;                //!< Priority level
 
     TaskStatus state;       //!< Current state
     U32 last_service;       //!< Last timestamp when this task was executed

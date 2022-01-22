@@ -1,4 +1,3 @@
-#include <sys/cdefs.h>
 /*
  * This file is part of the TumbarRTOS
  * Copyright (c) 2021 Andrei Tumbar.
@@ -20,17 +19,11 @@
 #include <scheduler.h>
 #include <tim.h>
 
-#include <stm32l4xx.h>
-
-void* memset(void* s, int c, int n);
+//#include <stm32l4xx.h>
 
 // The idle task will simply absorb cycles when no
 // task is ready to run
 _Noreturn static void idle_task_main(void);
-
-static const TaskParam default_params = {
-        .pri = 15, // medium priority
-};
 
 static U32 idle_stack[20];
 static Task idle_task;
@@ -71,9 +64,9 @@ static void os_task_exit(void)
         self->prev->next = self->next;
     }
 
-    if (os_scheduler.task_rr_pri[self->params.pri] == self)
+    if (os_scheduler.task_rr_pri[self->pri] == self)
     {
-        os_scheduler.task_rr_pri[self->params.pri]->next = self->next;
+        os_scheduler.task_rr_pri[self->pri]->next = self->next;
     }
 
     self->state = TASK_STOPPED;
@@ -82,7 +75,7 @@ static void os_task_exit(void)
 
 void os_task_create(
         Task* self,
-        const TaskParam* params,
+        U32 pri,
         void* stack_ptr,
         void (* thread_main)(void*),
         void* arg)
@@ -91,16 +84,10 @@ void os_task_create(
     FW_ASSERT(stack_ptr);
     FW_ASSERT(thread_main);
 
-
-    if (!params)
-    {
-        params = &default_params;
-    }
-
     // Store provided parameters
-    FW_ASSERT(params->pri < OS_SCHED_PRI_N, params->pri);
+    FW_ASSERT(pri < OS_SCHED_PRI_N, pri);
     self->sp = stack_ptr;
-    self->params = *params;
+    self->pri = pri;
     self->state = TASK_READY;
     self->blocker = NULL;
     self->last_service = 0; // never been serviced
@@ -108,7 +95,7 @@ void os_task_create(
     os_task_initialize_stack(self, thread_main, arg);
 
     // Add to linked list
-    self->next = os_scheduler.task_rr_pri[params->pri];
+    self->next = os_scheduler.task_rr_pri[pri];
     self->prev = NULL;
 
     if (self->next)
@@ -116,7 +103,7 @@ void os_task_create(
         self->next->prev = self;
     }
 
-    os_scheduler.task_rr_pri[params->pri] = self;
+    os_scheduler.task_rr_pri[pri] = self;
 }
 
 bool_t os_sched_next(void)
@@ -233,21 +220,12 @@ void os_scheduler_main(void)
     OS_DISABLE_INTERRUPTS();
 
     // Initialize the idle task
-    memset(&idle_task, 0, sizeof(idle_task));
-    idle_task.sp = idle_stack + sizeof(idle_stack);
-    idle_task.next = os_scheduler.task_rr_pri[OS_SCHED_PRI_N - 1];
-    if (os_scheduler.task_rr_pri[OS_SCHED_PRI_N - 1])
-    {
-        os_scheduler.task_rr_pri[OS_SCHED_PRI_N - 1]->prev = &idle_task;
-    }
+    os_task_create(&idle_task,
+                   OS_SCHED_PRI_N - 1,
+                   idle_stack + sizeof(idle_stack),
+                   (void (*)(void*)) idle_task_main,
+                   NULL);
 
-    os_scheduler.task_rr_pri[OS_SCHED_PRI_N - 1] = &idle_task;
-
-    os_sched_next();
-    os_task_initialize_stack(
-            os_next_tcb,
-            (void (*)(void*)) idle_task_main,
-            NULL);
     os_started = TRUE;
     os_current_tcb = os_next_tcb;
     os_start_first_task();
@@ -274,19 +252,15 @@ void os_task_initialize_stack(
 
 void os_task_context_switch(void)
 {
-    OS_DISABLE_INTERRUPTS();
-    {
-        FW_ASSERT(os_next_tcb);
-        os_current_tcb = os_next_tcb;
-        os_next_tcb = NULL;
-    }
-    OS_ENABLE_INTERRUPTS();
+    FW_ASSERT(os_next_tcb);
+    os_current_tcb = os_next_tcb;
+    os_next_tcb = NULL;
 }
 
 void os_pend_sv(void)
 {
     // Pend a context switch service
-    SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+//    SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
 }
 
 void xPortSysTickHandler(void)
